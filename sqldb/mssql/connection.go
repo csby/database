@@ -28,8 +28,11 @@ func (s *Connection) SourceName() string {
 	// sqlserver://username:password@host/instance?param1=value&param2=value
 	// sqlserver://sa@localhost/SQLExpress?database=master&connection+timeout=30 // `SQLExpress instance
 	q := url.Values{}
+	if len(s.Schema) > 0 {
+		q.Add("database", s.Schema)
+	}
 	if s.Timeout > 0 {
-		q.Add("&connection+timeout=", fmt.Sprint(s.Timeout))
+		q.Add("&connection+timeout", fmt.Sprint(s.Timeout))
 	}
 
 	u := &url.URL{
