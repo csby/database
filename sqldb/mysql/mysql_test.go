@@ -5,6 +5,7 @@ import (
 	"github.com/csby/database/sqldb"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -95,12 +96,18 @@ func TestMysql_ViewDefinition(t *testing.T) {
 
 func testConnection() *Connection {
 	goPath := os.Getenv("GOPATH")
-	paths := strings.Split(goPath, ";")
-	if len(paths) < 2 {
-		paths = strings.Split(goPath, ":")
-	}
+	paths := strings.Split(goPath, string(os.PathListSeparator))
 	if len(paths) > 1 {
 		goPath = paths[0]
+
+		_, file, _, _ := runtime.Caller(0)
+		fileDir := strings.ToLower(filepath.Dir(file))
+		for _, path := range paths {
+			if strings.HasPrefix(fileDir, strings.ToLower(path)) {
+				goPath = path
+				break
+			}
+		}
 	}
 	cfgPath := filepath.Join(goPath, "tmp", "cfg", "database_mysql_test.json")
 	cfg := &Connection{

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -26,29 +27,27 @@ func (s *Connection) DriverName() string {
 func (s *Connection) SourceName() string {
 	// sqlserver://username:password@host/instance?param1=value&param2=value
 	// sqlserver://sa@localhost/SQLExpress?database=master&connection+timeout=30 // `SQLExpress instance
-	sb := strings.Builder{}
-	sb.WriteString("sqlserver://")
-	sb.WriteString(s.User)
-	sb.WriteString(":")
-	sb.WriteString(s.Password)
-	sb.WriteString("@")
-	sb.WriteString(s.Server)
-	sb.WriteString(":")
-	sb.WriteString(fmt.Sprint(s.Port))
-	if len(s.Instance) > 0 {
-		if strings.ToUpper(s.Instance) != "MSSQLSERVER" {
-			sb.WriteString("/")
-			sb.WriteString(s.Instance)
-		}
-	}
-	sb.WriteString("?database=")
-	sb.WriteString(s.Schema)
+	q := url.Values{}
 	if s.Timeout > 0 {
-		sb.WriteString("&connection+timeout=")
-		sb.WriteString(fmt.Sprint(s.Timeout))
+		q.Add("&connection+timeout=", fmt.Sprint(s.Timeout))
 	}
 
-	return sb.String()
+	u := &url.URL{
+		Scheme: "sqlserver",
+		User:   url.UserPassword(s.User, s.Password),
+		Host:   fmt.Sprintf("%s:%d", s.Server, s.Port),
+	}
+
+	if len(s.Instance) > 0 {
+		if strings.ToUpper(s.Instance) != "MSSQLSERVER" {
+			u.Path = s.Instance
+		}
+	}
+	if len(q) > 0 {
+		u.RawQuery = q.Encode()
+	}
+
+	return u.String()
 }
 
 func (s *Connection) SchemaName() string {
