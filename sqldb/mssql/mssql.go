@@ -544,7 +544,7 @@ func (s *mssql) SelectOne(entity interface{}, filters ...sqldb.SqlFilter) error 
 	return sqlAccess.SelectOne(entity, filters...)
 }
 
-func (s *mssql) SelectDistinct(entity interface{}, row func(), order interface{}, filters ...sqldb.SqlFilter) error {
+func (s *mssql) SelectDistinct(entity interface{}, row func(index uint64, evt sqldb.SqlEvent), order interface{}, filters ...sqldb.SqlFilter) error {
 	sqlAccess, err := s.NewAccess(false)
 	if err != nil {
 		return err
@@ -554,7 +554,7 @@ func (s *mssql) SelectDistinct(entity interface{}, row func(), order interface{}
 	return sqlAccess.SelectDistinct(entity, row, order, filters...)
 }
 
-func (s *mssql) SelectList(entity interface{}, row func(), order interface{}, filters ...sqldb.SqlFilter) error {
+func (s *mssql) SelectList(entity interface{}, row func(index uint64, evt sqldb.SqlEvent), order interface{}, filters ...sqldb.SqlFilter) error {
 	sqlAccess, err := s.NewAccess(false)
 	if err != nil {
 		return err
@@ -564,7 +564,7 @@ func (s *mssql) SelectList(entity interface{}, row func(), order interface{}, fi
 	return sqlAccess.SelectList(entity, row, order, filters...)
 }
 
-func (s *mssql) SelectPage(entity interface{}, page func(total, page, size, index uint64), row func(), size, index uint64, order interface{}, filters ...sqldb.SqlFilter) error {
+func (s *mssql) SelectPage(entity interface{}, page func(total, page, size, index uint64), row func(index uint64, evt sqldb.SqlEvent), size, index uint64, order interface{}, filters ...sqldb.SqlFilter) error {
 	sqlAccess, err := s.NewAccess(false)
 	if err != nil {
 		return err

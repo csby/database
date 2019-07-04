@@ -107,15 +107,15 @@ func (s *transaction) SelectOne(entity interface{}, filters ...sqldb.SqlFilter) 
 	return s.selectOne(s, entity, filters...)
 }
 
-func (s *transaction) SelectDistinct(entity interface{}, row func(), order interface{}, filters ...sqldb.SqlFilter) error {
+func (s *transaction) SelectDistinct(entity interface{}, row func(index uint64, evt sqldb.SqlEvent), order interface{}, filters ...sqldb.SqlFilter) error {
 	return s.selectList(s, true, entity, row, order, filters...)
 }
 
-func (s *transaction) SelectList(entity interface{}, row func(), order interface{}, filters ...sqldb.SqlFilter) error {
+func (s *transaction) SelectList(entity interface{}, row func(index uint64, evt sqldb.SqlEvent), order interface{}, filters ...sqldb.SqlFilter) error {
 	return s.selectList(s, false, entity, row, order, filters...)
 }
 
-func (s *transaction) SelectPage(entity interface{}, page func(total, page, size, index uint64), row func(), size, index uint64, order interface{}, filters ...sqldb.SqlFilter) error {
+func (s *transaction) SelectPage(entity interface{}, page func(total, page, size, index uint64), row func(index uint64, evt sqldb.SqlEvent), size, index uint64, order interface{}, filters ...sqldb.SqlFilter) error {
 	return s.selectPage(s, entity, page, row, size, index, order, filters...)
 }
 

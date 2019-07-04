@@ -10,6 +10,10 @@ import (
 type access struct {
 }
 
+func (s *access) NewFilter(entity interface{}, fieldOr, groupOr bool) sqldb.SqlFilter {
+	return newFilter(entity, fieldOr, groupOr)
+}
+
 func (s *access) isNoRows(err error) bool {
 	if err == nil {
 		return false
@@ -367,7 +371,7 @@ func (s *access) selectOne(sqlAccess sqldb.SqlAccess, dbEntity interface{}, sqlF
 	return nil
 }
 
-func (s *access) selectList(sqlAccess sqldb.SqlAccess, distinct bool, dbEntity interface{}, row func(), dbOrder interface{}, sqlFilters ...sqldb.SqlFilter) error {
+func (s *access) selectList(sqlAccess sqldb.SqlAccess, distinct bool, dbEntity interface{}, row func(index uint64, evt sqldb.SqlEvent), dbOrder interface{}, sqlFilters ...sqldb.SqlFilter) error {
 	sqlEntity := &entity{}
 	err := sqlEntity.Parse(dbEntity)
 	if err != nil {
@@ -388,6 +392,8 @@ func (s *access) selectList(sqlAccess sqldb.SqlAccess, distinct bool, dbEntity i
 	}
 	defer rows.Close()
 
+	idx := uint64(0)
+	evt := &event{canceled: false, err: nil}
 	for rows.Next() {
 		err = rows.Scan(sqlEntity.ScanArgs()...)
 		if err != nil {
@@ -395,14 +401,19 @@ func (s *access) selectList(sqlAccess sqldb.SqlAccess, distinct bool, dbEntity i
 		}
 
 		if row != nil {
-			row()
+			row(idx, evt)
+			idx++
+		}
+
+		if evt.canceled {
+			return evt.err
 		}
 	}
 
 	return nil
 }
 
-func (s *access) selectPage(sqlAccess sqldb.SqlAccess, dbEntity interface{}, page func(total, page, size, index uint64), row func(), size, index uint64, dbOrder interface{}, sqlFilters ...sqldb.SqlFilter) error {
+func (s *access) selectPage(sqlAccess sqldb.SqlAccess, dbEntity interface{}, page func(total, page, size, index uint64), row func(index uint64, evt sqldb.SqlEvent), size, index uint64, dbOrder interface{}, sqlFilters ...sqldb.SqlFilter) error {
 	sqlEntity := &entity{}
 	err := sqlEntity.Parse(dbEntity)
 	if err != nil {
@@ -485,6 +496,8 @@ func (s *access) selectPage(sqlAccess sqldb.SqlAccess, dbEntity interface{}, pag
 	}
 	defer rows.Close()
 
+	idx := uint64(0)
+	evt := &event{canceled: false, err: nil}
 	for rows.Next() {
 		err = rows.Scan(sqlEntity.ScanArgs()...)
 		if err != nil {
@@ -492,7 +505,12 @@ func (s *access) selectPage(sqlAccess sqldb.SqlAccess, dbEntity interface{}, pag
 		}
 
 		if row != nil {
-			row()
+			row(idx, evt)
+			idx++
+		}
+
+		if evt.canceled {
+			return evt.err
 		}
 	}
 

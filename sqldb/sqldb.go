@@ -29,15 +29,17 @@ type SqlDatabase interface {
 	UpdateSelectiveByPrimaryKey(entity interface{}) (uint64, error)
 	SelectCount(entity interface{}, filters ...SqlFilter) (uint64, error)
 	SelectOne(entity interface{}, filters ...SqlFilter) error
-	SelectDistinct(entity interface{}, row func(), order interface{}, filters ...SqlFilter) error
-	SelectList(entity interface{}, row func(), order interface{}, filters ...SqlFilter) error
-	SelectPage(entity interface{}, page func(total, page, size, index uint64), row func(), size, index uint64, order interface{}, filters ...SqlFilter) error
+	SelectDistinct(entity interface{}, row func(idx uint64, evt SqlEvent), order interface{}, filters ...SqlFilter) error
+	SelectList(entity interface{}, row func(idx uint64, evt SqlEvent), order interface{}, filters ...SqlFilter) error
+	SelectPage(entity interface{}, page func(total, page, size, index uint64), row func(idx uint64, evt SqlEvent), size, index uint64, order interface{}, filters ...SqlFilter) error
 }
 
 type SqlAccess interface {
 	Close() error
 	Commit() error
 	Version() int
+
+	NewFilter(entity interface{}, fieldOr, groupOr bool) SqlFilter
 
 	Exec(query string, args ...interface{}) (sql.Result, error)
 	Prepare(query string) (*sql.Stmt, error)
@@ -54,9 +56,13 @@ type SqlAccess interface {
 	UpdateSelectiveByPrimaryKey(entity interface{}) (uint64, error)
 	SelectCount(entity interface{}, filters ...SqlFilter) (uint64, error)
 	SelectOne(entity interface{}, filters ...SqlFilter) error
-	SelectDistinct(entity interface{}, row func(), order interface{}, filters ...SqlFilter) error
-	SelectList(entity interface{}, row func(), order interface{}, filters ...SqlFilter) error
-	SelectPage(entity interface{}, page func(total, page, size, index uint64), row func(), size, index uint64, order interface{}, filters ...SqlFilter) error
+	SelectDistinct(entity interface{}, row func(idx uint64, evt SqlEvent), order interface{}, filters ...SqlFilter) error
+	SelectList(entity interface{}, row func(idx uint64, evt SqlEvent), order interface{}, filters ...SqlFilter) error
+	SelectPage(entity interface{}, page func(total, page, size, index uint64), row func(idx uint64, evt SqlEvent), size, index uint64, order interface{}, filters ...SqlFilter) error
+}
+
+type SqlEvent interface {
+	Cancel(err error)
 }
 
 type SqlField interface {

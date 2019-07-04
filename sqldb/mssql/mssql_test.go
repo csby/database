@@ -110,8 +110,8 @@ func TestMssql_SelectList(t *testing.T) {
 		connection: testConnection(),
 	}
 	dbEntity := &tabEntityUser{}
-	err := db.SelectList(dbEntity, func() {
-		t.Log("UserId:", dbEntity.UserId, "; UserName:", dbEntity.UserName)
+	err := db.SelectList(dbEntity, func(index uint64, evt sqldb.SqlEvent) {
+		t.Log(fmt.Sprintf("%3d ", index), "UserId:", dbEntity.UserId, "; UserName:", dbEntity.UserName)
 	}, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -130,7 +130,7 @@ func TestMssql_SelectPage(t *testing.T) {
 	sqlFilter := db.NewFilter(dbFilter, false, false)
 	err := db.SelectPage(dbEntity, func(total, page, size, index uint64) {
 		t.Log("total:", total, "; page:", page, "; size:", size, "; index:", index)
-	}, func() {
+	}, func(index uint64, evt sqldb.SqlEvent) {
 		t.Log("UserId:", dbEntity.UserId, "; UserName:", dbEntity.UserName)
 	}, 3, 2, dbOrder, sqlFilter)
 	if err != nil {
