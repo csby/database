@@ -12,6 +12,7 @@ type Token interface {
 	Get(key string, delay bool) (interface{}, bool)
 	Del(key string) bool
 	Lst(key string) []interface{}
+	Permanent(key string, val bool) bool
 }
 
 func NewToken(expMinutes int64, name string) Token {
@@ -33,8 +34,9 @@ func newToken(expMinutes int64, expCheckInterval time.Duration, name string) Tok
 }
 
 type tokenTime struct {
-	data interface{}
-	exp  time.Time
+	data      interface{}
+	exp       time.Time
+	permanent bool
 }
 
 type innerToken struct {
@@ -54,8 +56,9 @@ func (s *innerToken) Set(key string, data interface{}) {
 	defer s.Unlock()
 
 	s.items[key] = &tokenTime{
-		data: data,
-		exp:  time.Now().Add(s.exp),
+		data:      data,
+		exp:       time.Now().Add(s.exp),
+		permanent: false,
 	}
 }
 
@@ -104,6 +107,19 @@ func (s *innerToken) Lst(key string) []interface{} {
 	return items
 }
 
+func (s *innerToken) Permanent(key string, val bool) bool {
+	s.RLock()
+	defer s.RUnlock()
+
+	v, ok := s.items[key]
+	if !ok {
+		return false
+	}
+	v.permanent = val
+
+	return true
+}
+
 func (s *innerToken) checkExpiration(interval time.Duration) {
 	for {
 		time.Sleep(interval)
@@ -112,13 +128,15 @@ func (s *innerToken) checkExpiration(interval time.Duration) {
 }
 
 func (s *innerToken) deleteExpiration() {
-	now := time.Now()
 	s.Lock()
 	defer s.Unlock()
 
+	now := time.Now()
 	for k, v := range s.items {
-		if v.exp.Before(now) {
-			delete(s.items, k)
+		if !v.permanent {
+			if v.exp.Before(now) {
+				delete(s.items, k)
+			}
 		}
 	}
 }
