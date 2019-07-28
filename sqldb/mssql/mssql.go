@@ -207,12 +207,12 @@ WHERE   obj.[name] =
 	var comment *string = nil
 	dataType := ""
 	length := 0
-	precision := 0
-	var scale *int = nil
 	autoIncrement := 0
 	primaryKey := 0
 	nullable := 0
 	for rows.Next() {
+		var precision *int = nil
+		var scale *int = nil
 		var dataDefault *string = nil
 		err = rows.Scan(&name, &comment, &dataType, &length, &precision, &scale, &autoIncrement, &primaryKey, &nullable, &dataDefault)
 		if err != nil {
@@ -223,6 +223,8 @@ WHERE   obj.[name] =
 			Name:        name,
 			DataType:    dataType,
 			DataDefault: dataDefault,
+			Precision:   precision,
+			Scale:       scale,
 		}
 		if comment != nil {
 			column.Comment = *comment
@@ -392,11 +394,11 @@ func (s *mssql) ViewDefinition(viewName string) (string, error) {
 	return define.String(), nil
 }
 
-func (s *mssql) columnTypeName(dataType string, length, precision int, scale *int) string {
+func (s *mssql) columnTypeName(dataType string, length int, precision, scale *int) string {
 	sb := &strings.Builder{}
 	sb.WriteString(dataType)
-	if scale == nil {
-		if precision == 0 {
+	if scale == nil && precision != nil {
+		if *precision == 0 {
 			sb.WriteString(fmt.Sprintf("(%d)", length))
 		}
 	} else {

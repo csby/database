@@ -18,6 +18,10 @@ func NewDatabase(conn mqdb.MqConnection) mqdb.MqDatabase {
 func (s *rabbitMq) Test() (string, error) {
 	conn, err := amqp.Dial(s.connection.Connection())
 	if err != nil {
+		mqErr, ok := err.(*amqp.Error)
+		if ok {
+			return "", fmt.Errorf("%d: %s", mqErr.Code, mqErr.Reason)
+		}
 		return "", err
 	}
 	defer conn.Close()
@@ -39,6 +43,10 @@ func (s *rabbitMq) Test() (string, error) {
 func (s *rabbitMq) NewAccess() (mqdb.MqAccess, error) {
 	conn, err := amqp.Dial(s.connection.Connection())
 	if err != nil {
+		mqErr, ok := err.(*amqp.Error)
+		if ok {
+			return nil, fmt.Errorf("%d: %s", mqErr.Code, mqErr.Reason)
+		}
 		return nil, err
 	}
 

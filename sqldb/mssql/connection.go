@@ -11,13 +11,13 @@ import (
 )
 
 type Connection struct {
-	Server   string `json:"server"`   // 服务器名称或IP, 默认127.0.0.1
-	Port     int    `json:"port"`     // 服务器端口, 默认3306
-	Instance string `json:"instance"` // 数据库实例, 默认MSSQLSERVER
-	Schema   string `json:"schema"`   // 数据库名称
-	User     string `json:"user"`     // 登录名
-	Password string `json:"password"` // 登陆密码
-	Timeout  int    `json:"Timeout" note:"连接超时时间，单位秒，默认10"`
+	Host     string `json:"host" note:"服务器名称或IP, 默认127.0.0.1"`
+	Port     int    `json:"port" note:"服务器端口, 默认3306"`
+	Instance string `json:"instance" note:"数据库实例, 默认MSSQLSERVER"`
+	Schema   string `json:"schema" note:"数据库名称"`
+	User     string `json:"user" note:"登录名"`
+	Password string `json:"password" note:"登陆密码"`
+	Timeout  int    `json:"timeout" note:"连接超时时间，单位秒，默认10"`
 }
 
 func (s *Connection) DriverName() string {
@@ -38,7 +38,7 @@ func (s *Connection) SourceName() string {
 	u := &url.URL{
 		Scheme: "sqlserver",
 		User:   url.UserPassword(s.User, s.Password),
-		Host:   fmt.Sprintf("%s:%d", s.Server, s.Port),
+		Host:   fmt.Sprintf("%s:%d", s.Host, s.Port),
 	}
 
 	if len(s.Instance) > 0 {
@@ -87,4 +87,43 @@ func (s *Connection) LoadFromFile(filePath string) error {
 	}
 
 	return json.Unmarshal(bytes, s)
+}
+
+func (s *Connection) CopyTo(target *Connection) int {
+	if target == nil {
+		return 0
+	}
+
+	count := 0
+	if target.Host != s.Host {
+		target.Host = s.Host
+		count++
+	}
+	if target.Port != s.Port {
+		target.Port = s.Port
+		count++
+	}
+	if target.Instance != s.Instance {
+		target.Instance = s.Instance
+		count++
+	}
+	if target.Schema != s.Schema {
+		target.Schema = s.Schema
+		count++
+	}
+
+	if target.User != s.User {
+		target.User = s.User
+		count++
+	}
+	if target.Password != s.Password {
+		target.Password = s.Password
+		count++
+	}
+	if target.Timeout != s.Timeout {
+		target.Timeout = s.Timeout
+		count++
+	}
+
+	return count
 }

@@ -9,7 +9,7 @@ import (
 )
 
 type Connection struct {
-	Server   string `json:"server" note:"服务器名称或IP, 默认127.0.0.1"`
+	Host     string `json:"host" note:"服务器名称或IP, 默认127.0.0.1"`
 	Port     int    `json:"port" note:"服务器端口, 默认3306"`
 	Schema   string `json:"schema" note:"数据库名称, 默认mysql"`
 	Charset  string `json:"charset" note:"字符集, 默认utf8"`
@@ -26,7 +26,7 @@ func (s *Connection) SourceName() string {
 	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=%s&timeout=%ds&parseTime=true&loc=Local",
 		s.User,
 		s.Password,
-		s.Server,
+		s.Host,
 		s.Port,
 		s.Schema,
 		s.Charset,
@@ -67,4 +67,42 @@ func (s *Connection) LoadFromFile(filePath string) error {
 	}
 
 	return json.Unmarshal(bytes, s)
+}
+
+func (s *Connection) CopyTo(target *Connection) int {
+	if target == nil {
+		return 0
+	}
+
+	count := 0
+	if target.Host != s.Host {
+		target.Host = s.Host
+		count++
+	}
+	if target.Port != s.Port {
+		target.Port = s.Port
+		count++
+	}
+	if target.Schema != s.Schema {
+		target.Schema = s.Schema
+		count++
+	}
+	if target.Charset != s.Charset {
+		target.Charset = s.Charset
+		count++
+	}
+	if target.User != s.User {
+		target.User = s.User
+		count++
+	}
+	if target.Password != s.Password {
+		target.Password = s.Password
+		count++
+	}
+	if target.Timeout != s.Timeout {
+		target.Timeout = s.Timeout
+		count++
+	}
+
+	return count
 }

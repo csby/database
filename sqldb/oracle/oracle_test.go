@@ -1,4 +1,4 @@
-package mysql
+package oracle
 
 import (
 	"fmt"
@@ -10,8 +10,11 @@ import (
 	"testing"
 )
 
-func TestTest(t *testing.T) {
-	db := NewDatabase(testConnection())
+func TestOracle_Test(t *testing.T) {
+	db := &Oracle{
+		connection: testConnection(),
+	}
+	t.Log("connection:", db.connection.SourceName())
 
 	dbVer, err := db.Test()
 	if err != nil {
@@ -21,8 +24,8 @@ func TestTest(t *testing.T) {
 	t.Log("version: ", dbVer)
 }
 
-func TestMysql_Tables(t *testing.T) {
-	db := &mysql{
+func TestOracle_Tables(t *testing.T) {
+	db := &Oracle{
 		connection: testConnection(),
 	}
 	tables, err := db.Tables()
@@ -36,26 +39,26 @@ func TestMysql_Tables(t *testing.T) {
 	}
 }
 
-func TestMysql_Views(t *testing.T) {
-	db := &mysql{
+func TestOracle_Views(t *testing.T) {
+	db := &Oracle{
 		connection: testConnection(),
 	}
-	views, err := db.Views()
+	tables, err := db.Views()
 	if err != nil {
 		t.Fatal(err)
 	}
-	count := len(views)
+	count := len(tables)
 	t.Log("count:", count)
 	for i := 0; i < count; i++ {
-		t.Logf("%2d %+v", i+1, views[i])
+		t.Logf("%2d %+v", i+1, tables[i])
 	}
 }
 
-func TestMysql_Columns(t *testing.T) {
-	db := &mysql{
+func TestOracle_Columns(t *testing.T) {
+	db := &Oracle{
 		connection: testConnection(),
 	}
-	tableName := "DoctorUserAuths"
+	tableName := "LAB.ANTIBIOTICS_RESULT_REFER"
 	columns, err := db.Columns(tableName)
 	if err != nil {
 		t.Fatal(err)
@@ -67,31 +70,31 @@ func TestMysql_Columns(t *testing.T) {
 	}
 }
 
-func TestMysql_TableDefinition(t *testing.T) {
-	db := &mysql{
-		connection: testConnection(),
-	}
-	table := &sqldb.SqlTable{
-		Name:        "AlertRecord",
-		Description: "dd",
-	}
-	definition, err := db.TableDefinition(table)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Log("definition:", definition)
+func TestOracle_getOwnerAndName(t *testing.T) {
+	db := &Oracle{}
+	owner, name := db.getOwnerAndName("EXAM.EXAM_IMAGE_INDEX")
+	t.Log("owner:", owner)
+	t.Log("name :", name)
+	owner, name = db.getOwnerAndName("EXAM.")
+	t.Log("owner:", owner)
+	t.Log("name :", name)
+	owner, name = db.getOwnerAndName("EXAM")
+	t.Log("owner:", owner)
+	t.Log("name :", name)
 }
 
-func TestMysql_ViewDefinition(t *testing.T) {
-	db := &mysql{
+func TestOracle_SelectList(t *testing.T) {
+	db := &Oracle{
 		connection: testConnection(),
 	}
-	viewName := "ViewAlertRecord"
-	definition, err := db.ViewDefinition(viewName)
+
+	dbEntity := &TabEntity{}
+	err := db.SelectList(dbEntity, func(index uint64, evt sqldb.SqlEvent) {
+		t.Log(fmt.Sprintf("%3d ", index), "AntibioticsCode:", dbEntity.AntibioticsCode, "; TestMethod:", dbEntity.TestMethod)
+	}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log("definition:", definition)
 }
 
 func testConnection() *Connection {
@@ -109,15 +112,13 @@ func testConnection() *Connection {
 			}
 		}
 	}
-	cfgPath := filepath.Join(goPath, "tmp", "cfg", "database_mysql_test.json")
+	cfgPath := filepath.Join(goPath, "tmp", "cfg", "database_oracle_test.json")
 	cfg := &Connection{
-		Host:     "172.0.0.1",
-		Port:     3306,
-		Schema:   "mysql",
-		Charset:  "utf8",
-		Timeout:  10,
-		User:     "root",
-		Password: "",
+		Host:     "127.0.0.1",
+		Port:     1521,
+		SID:      "orcl",
+		User:     "dba",
+		Password: "***",
 	}
 	_, err := os.Stat(cfgPath)
 	if os.IsNotExist(err) {
@@ -133,4 +134,19 @@ func testConnection() *Connection {
 	}
 
 	return cfg
+}
+
+type TabEntityBase struct {
+}
+
+func (s TabEntityBase) TableName() string {
+	return "LAB.ANTIBIOTICS_RESULT_REFER"
+}
+
+type TabEntity struct {
+	TabEntityBase
+	//
+	AntibioticsCode string `sql:"ANTIBIOTICS_CODE"`
+	//
+	TestMethod string `sql:"TEST_METHOD"`
 }

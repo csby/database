@@ -155,7 +155,7 @@ func testConnection() *Connection {
 	}
 	cfgPath := filepath.Join(goPath, "tmp", "cfg", "database_mssql_test.json")
 	cfg := &Connection{
-		Server:   "127.0.0.1",
+		Host:     "127.0.0.1",
 		Port:     1433,
 		Schema:   "test",
 		Instance: "MSSQLSERVER",

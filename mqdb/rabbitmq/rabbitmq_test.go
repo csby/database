@@ -1,6 +1,7 @@
 package rabbitmq
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/csby/database/mqdb"
 	"testing"
@@ -23,9 +24,18 @@ func TestAccess_Publish(t *testing.T) {
 	}
 	defer ac.Close()
 
+	argument := &testArgument{
+		PatientID: "A20070910",
+		VisitID:   "1",
+	}
+	body, err := json.Marshal(argument)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	name := "unit-test"
 	msg := &mqdb.MqMessage{
-		Body: []byte("Hello World!"),
+		Body: body,
 	}
 	err = ac.Publish(name, msg)
 	if err != nil {
@@ -33,7 +43,15 @@ func TestAccess_Publish(t *testing.T) {
 	}
 }
 
-func TestAccess_Consume(t *testing.T) {
+func TestAccess_Consume1(t *testing.T) {
+	testAccess_Consume(t)
+}
+
+func TestAccess_Consume2(t *testing.T) {
+	testAccess_Consume(t)
+}
+
+func testAccess_Consume(t *testing.T) {
 	db := NewDatabase(testConnection())
 	ac, err := db.NewAccess()
 	if err != nil {
@@ -64,4 +82,9 @@ func testConnection() *Connection {
 		Password:    "pwd",
 		VirtualHost: "host-dev",
 	}
+}
+
+type testArgument struct {
+	PatientID string `json:"patientId"`
+	VisitID   string `json:"visitId"`
 }

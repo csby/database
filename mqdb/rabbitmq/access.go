@@ -25,6 +25,10 @@ func (s *access) Publish(queueName string, msg *mqdb.MqMessage) error {
 
 	ch, err := s.connection.Channel()
 	if err != nil {
+		mqErr, ok := err.(*amqp.Error)
+		if ok {
+			return fmt.Errorf("%d: %s", mqErr.Code, mqErr.Reason)
+		}
 		return err
 	}
 	defer ch.Close()
@@ -37,6 +41,10 @@ func (s *access) Publish(queueName string, msg *mqdb.MqMessage) error {
 		nil,   // arguments
 	)
 	if err != nil {
+		mqErr, ok := err.(*amqp.Error)
+		if ok {
+			return fmt.Errorf("%d: %s", mqErr.Code, mqErr.Reason)
+		}
 		return err
 	}
 
@@ -62,12 +70,23 @@ func (s *access) Publish(queueName string, msg *mqdb.MqMessage) error {
 			Body:            msg.Body,
 		})
 
+	if err != nil {
+		mqErr, ok := err.(*amqp.Error)
+		if ok {
+			return fmt.Errorf("%d: %s", mqErr.Code, mqErr.Reason)
+		}
+	}
+
 	return err
 }
 
 func (s *access) Consume(queueName string, received func(mqReceiver mqdb.MqReceiver)) error {
 	ch, err := s.connection.Channel()
 	if err != nil {
+		mqErr, ok := err.(*amqp.Error)
+		if ok {
+			return fmt.Errorf("%d: %s", mqErr.Code, mqErr.Reason)
+		}
 		return err
 	}
 	defer ch.Close()
@@ -80,6 +99,10 @@ func (s *access) Consume(queueName string, received func(mqReceiver mqdb.MqRecei
 		nil,   // arguments
 	)
 	if err != nil {
+		mqErr, ok := err.(*amqp.Error)
+		if ok {
+			return fmt.Errorf("%d: %s", mqErr.Code, mqErr.Reason)
+		}
 		return err
 	}
 
@@ -92,6 +115,10 @@ func (s *access) Consume(queueName string, received func(mqReceiver mqdb.MqRecei
 		nil,   // args
 	)
 	if err != nil {
+		mqErr, ok := err.(*amqp.Error)
+		if ok {
+			return fmt.Errorf("%d: %s", mqErr.Code, mqErr.Reason)
+		}
 		return err
 	}
 

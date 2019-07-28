@@ -133,6 +133,8 @@ type SqlColumn struct {
 	AutoIncrement bool `json:"autoIncrement" note:"是否自增长"`
 
 	DataType    string  `json:"dataType" note:"数据类型"`
+	Precision   *int    `json:"precision" note:"精度"`
+	Scale       *int    `json:"scale" note:"小数点"`
 	DataDefault *string `json:"dataDefault" note:"数据默认值"`
 	DataDisplay string  `json:"dataDisplay" note:"数据默认值显示"`
 }

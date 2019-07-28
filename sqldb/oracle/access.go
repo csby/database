@@ -1,4 +1,4 @@
-package mssql
+package oracle
 
 import (
 	"database/sql"
@@ -71,11 +71,11 @@ func (s *access) fillWhereField(sqlBuilder sqldb.SqlBuilder, fields []sqldb.SqlF
 				}
 			} else {
 				if fieldIndex == 0 {
-					sqlBuilder.Where(fmt.Sprintf("%s %s %s", field.Name(), filterSymbol, sqlBuilder.ArgName()), field.Value())
+					sqlBuilder.Where(fmt.Sprintf("%s %s ?", field.Name(), filterSymbol), field.Value())
 				} else if or {
-					sqlBuilder.WhereOr(fmt.Sprintf("%s %s %s", field.Name(), filterSymbol, sqlBuilder.ArgName()), field.Value())
+					sqlBuilder.WhereOr(fmt.Sprintf("%s %s ?", field.Name(), filterSymbol), field.Value())
 				} else {
-					sqlBuilder.WhereAnd(fmt.Sprintf("%s %s %s", field.Name(), filterSymbol, sqlBuilder.ArgName()), field.Value())
+					sqlBuilder.WhereAnd(fmt.Sprintf("%s %s ?", field.Name(), filterSymbol), field.Value())
 				}
 			}
 		}
@@ -164,17 +164,17 @@ func (s *access) insert(sqlAccess sqldb.SqlAccess, selective bool, dbEntity inte
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(sqlBuilder.Args()...)
+	result, err := stmt.Exec(sqlBuilder.Args()...)
 	if err != nil {
 		return 0, err
 	}
 
 	if hasAutoField {
-		//id, err := result.LastInsertId()
-		//if err != nil {
-		//	return 0, err
-		//}
-		//return uint64(id), nil
+		id, err := result.LastInsertId()
+		if err != nil {
+			return 0, err
+		}
+		return uint64(id), nil
 	}
 
 	return 0, nil
@@ -443,52 +443,16 @@ func (s *access) selectPage(sqlAccess sqldb.SqlAccess, dbEntity interface{}, pag
 		return nil
 	}
 
-	sqlBuilderOrder := &builder{}
-	sqlBuilderOrder.Reset()
-	s.fillOrder(sqlBuilderOrder, dbOrder)
-	if len(sqlBuilderOrder.Query()) < 1 {
-		orderField := ""
-		fieldCount := sqlEntity.FieldCount()
-		for i := 0; i < fieldCount; i++ {
-			field := sqlEntity.Field(i)
-			if orderField == "" {
-				orderField = field.Name()
-			}
-			if field.PrimaryKey() {
-				orderField = field.Name()
-				break
-			}
-		}
-		if orderField != "" {
-			sqlBuilderOrder.Append("order by ")
-			sqlBuilderOrder.Append(orderField)
-		}
-	}
-	orderQuery := sqlBuilderOrder.Query()
-	startIndex := (pageIndex - 1) * size
-
 	sqlBuilder := &builder{}
 	sqlBuilder.Reset()
+	sqlBuilder.Select(sqlEntity.ScanFields(), false).From(sqlEntity.Name())
+	s.fillWhere(sqlBuilder, sqlFilters...)
+	s.fillOrder(sqlBuilder, dbOrder)
 
-	version := sqlAccess.Version()
-	if version < 2012 {
-		sqlBuilder.Append("SELECT ")
-		sqlBuilder.Append(sqlEntity.ScanFields())
-		sqlBuilder.Append("FROM ( SELECT ")
-		sqlBuilder.Append(sqlEntity.ScanFields())
-		sqlBuilder.Append(fmt.Sprintf(", ROW_NUMBER() OVER(%s) AS [RowNumber] ", orderQuery)).From(sqlEntity.Name())
-		s.fillWhere(sqlBuilder, sqlFilters...)
-		sqlBuilder.Append(") as t ")
-		sqlBuilder.Append(fmt.Sprintf("where [RowNumber] BETWEEN %d and %d", startIndex+1, startIndex+size))
-	} else {
-		sqlBuilder.Select(sqlEntity.ScanFields(), false).From(sqlEntity.Name())
-		s.fillWhere(sqlBuilder, sqlFilters...)
-		sqlBuilder.Append(orderQuery)
-		sqlBuilder.Append(fmt.Sprintf("OFFSET %d ROWS FETCH NEXT %d ROWS ONLY", startIndex, size))
-	}
+	startIndex := (pageIndex - 1) * size
+	sqlBuilder.Append("LIMIT ?, ?", startIndex, size)
 
 	query := sqlBuilder.Query()
-	fmt.Println("query:", query)
 	args := sqlBuilder.Args()
 	rows, err := sqlAccess.Query(query, args...)
 	if err != nil {
