@@ -2,6 +2,10 @@ package sqldb
 
 import "database/sql"
 
+type SqlFactory interface {
+	NewDatabase() SqlDatabase
+}
+
 type SqlConnection interface {
 	DriverName() string
 	SourceName() string
