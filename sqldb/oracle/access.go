@@ -71,11 +71,11 @@ func (s *access) fillWhereField(sqlBuilder sqldb.SqlBuilder, fields []sqldb.SqlF
 				}
 			} else {
 				if fieldIndex == 0 {
-					sqlBuilder.Where(fmt.Sprintf("%s %s ?", field.Name(), filterSymbol), field.Value())
+					sqlBuilder.Where(fmt.Sprintf("%s %s %s", field.Name(), filterSymbol, sqlBuilder.ArgName()), field.Value())
 				} else if or {
-					sqlBuilder.WhereOr(fmt.Sprintf("%s %s ?", field.Name(), filterSymbol), field.Value())
+					sqlBuilder.WhereOr(fmt.Sprintf("%s %s %s", field.Name(), filterSymbol, sqlBuilder.ArgName()), field.Value())
 				} else {
-					sqlBuilder.WhereAnd(fmt.Sprintf("%s %s ?", field.Name(), filterSymbol), field.Value())
+					sqlBuilder.WhereAnd(fmt.Sprintf("%s %s %s", field.Name(), filterSymbol, sqlBuilder.ArgName()), field.Value())
 				}
 			}
 		}

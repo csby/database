@@ -90,10 +90,15 @@ func TestOracle_SelectList(t *testing.T) {
 		connection: testConnection(),
 	}
 
+	dbFilter := &TabEntityFilter{
+		AntibioticsCode: "4",
+	}
+	sqlFilter := db.NewFilter(dbFilter, false, false)
+
 	dbEntity := &TabEntity{}
 	err := db.SelectList(dbEntity, func(index uint64, evt sqldb.SqlEvent) {
 		t.Log(fmt.Sprintf("%3d ", index), "AntibioticsCode:", dbEntity.AntibioticsCode, "; TestMethod:", dbEntity.TestMethod)
-	}, nil)
+	}, nil, sqlFilter)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -151,4 +156,10 @@ type TabEntity struct {
 	AntibioticsCode string `sql:"ANTIBIOTICS_CODE"`
 	//
 	TestMethod string `sql:"TEST_METHOD"`
+}
+
+type TabEntityFilter struct {
+	TabEntityBase
+	//
+	AntibioticsCode string `sql:"ANTIBIOTICS_CODE"`
 }
