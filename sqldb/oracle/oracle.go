@@ -152,14 +152,14 @@ func (s *Oracle) Views() ([]*sqldb.SqlTable, error) {
 	return tables, nil
 }
 
-func (s *Oracle) Columns(tableName string) ([]*sqldb.SqlColumn, error) {
+func (s *Oracle) Columns(table *sqldb.SqlTable) ([]*sqldb.SqlColumn, error) {
 	db, err := sql.Open(s.connection.DriverName(), s.connection.SourceName())
 	if err != nil {
 		return nil, err
 	}
 	defer db.Close()
 
-	tabOwner, tabName := s.getOwnerAndName(tableName)
+	tabOwner, tabName := s.getOwnerAndName(table.Name)
 
 	// 列名 | 列说明 | 数据类型 | 长度 | 精度 | 小数位数 | 允许空
 	sb := &strings.Builder{}

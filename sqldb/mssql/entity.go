@@ -18,7 +18,8 @@ const (
 	sqlFieldPrimaryKeyTagName    = "primary"
 	sqlFieldIndexTagName         = "index"
 
-	sqlFunTableTagName = "TableName"
+	sqlFunSchemaTagName = "SchemaName"
+	sqlFunTableTagName  = "TableName"
 )
 
 type entity struct {
@@ -88,6 +89,36 @@ func (s *entity) ParseFilter(entity interface{}) error {
 	return nil
 }
 
+func (s *entity) parseSchema(v reflect.Value) (string, error) {
+	msgNotDefine := fmt.Sprintf("'func (s %s) %s() string' not define in struct", v.Type().Name(), sqlFunSchemaTagName)
+	method := v.MethodByName(sqlFunSchemaTagName)
+	if !method.IsValid() {
+		return "", errors.New(msgNotDefine)
+	}
+
+	methodType := method.Type()
+	if methodType.NumIn() != 0 {
+		return "", errors.New(msgNotDefine)
+	}
+	if methodType.NumOut() != 1 {
+		return "", errors.New(msgNotDefine)
+	}
+	if methodType.Out(0).Kind() != reflect.String {
+		return "", errors.New(msgNotDefine)
+	}
+
+	result := method.Call([]reflect.Value{})
+	if len(result) != 1 {
+		return "", newError("get table name of '", v.Type().Name(), "' fail")
+	}
+	name := fmt.Sprintf("[%s]", result[0].String())
+	if name == "[]" {
+		return "", newError("invalid entity (", v.Type().Name(), "): table name is empty")
+	}
+
+	return name, nil
+}
+
 func (s *entity) parseName(v reflect.Value) error {
 	msgNotDefine := fmt.Sprintf("'func (s %s) %s() string' not define in struct", v.Type().Name(), sqlFunTableTagName)
 	method := v.MethodByName(sqlFunTableTagName)
@@ -110,9 +141,16 @@ func (s *entity) parseName(v reflect.Value) error {
 	if len(result) != 1 {
 		return newError("get table name of '", v.Type().Name(), "' fail")
 	}
-	s.name = fmt.Sprintf("[%s]", result[0].String())
-	if s.name == "``" {
+	name := fmt.Sprintf("[%s]", result[0].String())
+	if name == "[]" {
 		return newError("invalid entity (", v.Type().Name(), "): table name is empty")
+	}
+
+	schema, err := s.parseSchema(v)
+	if err == nil && len(schema) > 0 {
+		s.name = fmt.Sprintf("%s.%s", schema, name)
+	} else {
+		s.name = name
 	}
 
 	return nil

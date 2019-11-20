@@ -124,7 +124,7 @@ func (s *mysql) Views() ([]*sqldb.SqlTable, error) {
 	return tables, nil
 }
 
-func (s *mysql) Columns(tableName string) ([]*sqldb.SqlColumn, error) {
+func (s *mysql) Columns(table *sqldb.SqlTable) ([]*sqldb.SqlColumn, error) {
 	db, err := sql.Open(s.connection.DriverName(), s.connection.SourceName())
 	if err != nil {
 		return nil, err
@@ -145,7 +145,7 @@ func (s *mysql) Columns(tableName string) ([]*sqldb.SqlColumn, error) {
 	sb.WriteString("from `information_schema`.`columns` ")
 	sb.WriteString("where `table_schema`=? and `table_name`=? ")
 
-	rows, err := db.Query(sb.String(), s.connection.SchemaName(), tableName)
+	rows, err := db.Query(sb.String(), s.connection.SchemaName(), table.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -201,7 +201,7 @@ func (s *mysql) TableDefinition(table *sqldb.SqlTable) (string, error) {
 		return "", fmt.Errorf("table is nil")
 	}
 
-	columns, err := s.Columns(table.Name)
+	columns, err := s.Columns(table)
 	if err != nil {
 		return "", err
 	}

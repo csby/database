@@ -74,8 +74,9 @@ func (s *mssql) Tables() ([]*sqldb.SqlTable, error) {
 	defer db.Close()
 
 	sb := &strings.Builder{}
-	sb.WriteString("select t.[name], e.[value] ")
+	sb.WriteString("select s.[name], t.[name], e.[value] ")
 	sb.WriteString("from [sys].[tables] t ")
+	sb.WriteString("left join [sys].[schemas] s on s.[schema_id] = t.[schema_id]")
 	sb.WriteString("left join [sys].[extended_properties] e on e.[major_id] = t.[object_id] and e.[minor_id] = 0 ")
 
 	query := sb.String()
@@ -86,16 +87,18 @@ func (s *mssql) Tables() ([]*sqldb.SqlTable, error) {
 	defer rows.Close()
 
 	tables := make([]*sqldb.SqlTable, 0)
+	schema := ""
 	name := ""
 	var description *string = nil
 	for rows.Next() {
-		err = rows.Scan(&name, &description)
+		err = rows.Scan(&schema, &name, &description)
 		if err != nil {
 			return nil, err
 		}
 
 		table := &sqldb.SqlTable{
-			Name: name,
+			Schema: schema,
+			Name:   name,
 		}
 		if description != nil {
 			table.Description = *description
@@ -115,8 +118,9 @@ func (s *mssql) Views() ([]*sqldb.SqlTable, error) {
 	defer db.Close()
 
 	sb := &strings.Builder{}
-	sb.WriteString("select [name] ")
-	sb.WriteString("from [sys].[views] ")
+	sb.WriteString("select s.[name], v.[name] ")
+	sb.WriteString("from [sys].[views] v ")
+	sb.WriteString("left join [sys].[schemas] s on s.[schema_id] = v.[schema_id] ")
 
 	query := sb.String()
 	rows, err := db.Query(query)
@@ -126,15 +130,17 @@ func (s *mssql) Views() ([]*sqldb.SqlTable, error) {
 	defer rows.Close()
 
 	tables := make([]*sqldb.SqlTable, 0)
+	schema := ""
 	name := ""
 	for rows.Next() {
-		err = rows.Scan(&name)
+		err = rows.Scan(&schema, &name)
 		if err != nil {
 			return nil, err
 		}
 
 		table := &sqldb.SqlTable{
-			Name: name,
+			Schema: schema,
+			Name:   name,
 		}
 
 		tables = append(tables, table)
@@ -143,7 +149,7 @@ func (s *mssql) Views() ([]*sqldb.SqlTable, error) {
 	return tables, nil
 }
 
-func (s *mssql) Columns(tableName string) ([]*sqldb.SqlColumn, error) {
+func (s *mssql) Columns(table *sqldb.SqlTable) ([]*sqldb.SqlColumn, error) {
 	db, err := sql.Open(s.connection.DriverName(), s.connection.SourceName())
 	if err != nil {
 		return nil, err
@@ -186,13 +192,20 @@ FROM    [dbo].[syscolumns] col
         LEFT  JOIN [sys].[extended_properties] epTwo ON obj.[id] = epTwo.[major_id]  
                                                          AND epTwo.[minor_id] = 0  
                                                          AND epTwo.[name] = 'MS_Description'  
+		LEFT  JOIN [sys].[tables] tab ON tab.[object_id] = obj.[id] 
+		LEFT  JOIN [sys].[views] vie ON vie.[object_id] = obj.[id] 
+		LEFT  JOIN [sys].[schemas] sch ON (sch.[schema_id] = tab.[schema_id] or sch.[schema_id] = vie.[schema_id])
 WHERE   obj.[name] = 
 `
 
 	sb := &strings.Builder{}
 	sb.WriteString(sqlStr)
 	sb.WriteString("'")
-	sb.WriteString(tableName)
+	sb.WriteString(table.Name)
+	sb.WriteString("'")
+
+	sb.WriteString(" and  sch.[name] = '")
+	sb.WriteString(table.Schema)
 	sb.WriteString("'")
 
 	query := sb.String()
@@ -254,7 +267,7 @@ func (s *mssql) TableDefinition(table *sqldb.SqlTable) (string, error) {
 		return "", fmt.Errorf("table is nil")
 	}
 
-	columns, err := s.Columns(table.Name)
+	columns, err := s.Columns(table)
 	if err != nil {
 		return "", err
 	}

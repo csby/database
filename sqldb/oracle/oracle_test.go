@@ -58,8 +58,10 @@ func TestOracle_Columns(t *testing.T) {
 	db := &Oracle{
 		connection: testConnection(),
 	}
-	tableName := "LAB.ANTIBIOTICS_RESULT_REFER"
-	columns, err := db.Columns(tableName)
+	table := &sqldb.SqlTable{
+		Name: "LAB.ANTIBIOTICS_RESULT_REFER",
+	}
+	columns, err := db.Columns(table)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -58,8 +58,11 @@ func TestMssql_Columns(t *testing.T) {
 	db := &mssql{
 		connection: testConnection(),
 	}
-	tableName := "Admission"
-	columns, err := db.Columns(tableName)
+	table := &sqldb.SqlTable{
+		Schema: "BJH_GREENLANDERPACS_BJH_T_ORDER",
+		Name:   "T_ORDER",
+	}
+	columns, err := db.Columns(table)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -112,6 +115,19 @@ func TestMssql_SelectList(t *testing.T) {
 	dbEntity := &tabEntityUser{}
 	err := db.SelectList(dbEntity, func(index uint64, evt sqldb.SqlEvent) {
 		t.Log(fmt.Sprintf("%3d ", index), "UserId:", dbEntity.UserId, "; UserName:", dbEntity.UserName)
+	}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestMssql_SelectList2(t *testing.T) {
+	db := &mssql{
+		connection: testConnection(),
+	}
+	dbEntity := &tabOrder{}
+	err := db.SelectList(dbEntity, func(index uint64, evt sqldb.SqlEvent) {
+		t.Log(fmt.Sprintf("%3d ", index), "Rowid:", dbEntity.Rowid, "; Sequencenumber:", dbEntity.Sequencenumber)
 	}, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -182,6 +198,10 @@ func testConnection() *Connection {
 type TabEntityBase struct {
 }
 
+func (s TabEntityBase) SchemaName() string {
+	return "dbo"
+}
+
 func (s TabEntityBase) TableName() string {
 	return "User"
 }
@@ -203,4 +223,19 @@ type tabEntityUserFilter struct {
 	TabEntityBase
 
 	Auth uint64 `sql:"Auth"`
+}
+
+type tabOrder struct {
+	//
+	Rowid uint64 `sql:"RowId" auto:"true" primary:"true"`
+	//
+	Sequencenumber uint64 `sql:"SequenceNumber"`
+}
+
+func (s tabOrder) SchemaName() string {
+	return "BJH_GREENLANDERPACS_BJH_T_ORDER"
+}
+
+func (s tabOrder) TableName() string {
+	return "T_ORDER"
 }

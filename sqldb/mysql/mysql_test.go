@@ -55,8 +55,10 @@ func TestMysql_Columns(t *testing.T) {
 	db := &mysql{
 		connection: testConnection(),
 	}
-	tableName := "DoctorUserAuths"
-	columns, err := db.Columns(tableName)
+	table := &sqldb.SqlTable{
+		Name: "DoctorUserAuths",
+	}
+	columns, err := db.Columns(table)
 	if err != nil {
 		t.Fatal(err)
 	}

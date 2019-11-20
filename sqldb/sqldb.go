@@ -12,7 +12,7 @@ type SqlDatabase interface {
 	Test() (string, error)
 	Tables() ([]*SqlTable, error)
 	Views() ([]*SqlTable, error)
-	Columns(tableName string) ([]*SqlColumn, error)
+	Columns(table *SqlTable) ([]*SqlColumn, error)
 
 	NewAccess(transactional bool) (SqlAccess, error)
 	NewEntity() SqlEntity
@@ -118,6 +118,7 @@ type SqlFilter interface {
 }
 
 type SqlTable struct {
+	Schema      string `json:"schema"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
 }
