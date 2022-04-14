@@ -26,6 +26,10 @@ func (s *Oracle) Open() (*sql.DB, error) {
 	return db, nil
 }
 
+func (s *Oracle) Instances(host, port string) ([]sqldb.SqlInstance, error) {
+	return nil, fmt.Errorf("not support")
+}
+
 func (s *Oracle) Test() (string, error) {
 	db, err := sql.Open(s.connection.DriverName(), s.connection.SourceName())
 	if err != nil {

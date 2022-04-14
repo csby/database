@@ -24,6 +24,21 @@ func TestTest(t *testing.T) {
 	t.Log("version: ", dbVer)
 }
 
+func Test_mssql_Instances(t *testing.T) {
+	db := &mssql{}
+	instances, err := db.Instances("127.0.0.1", "1434")
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+
+	t.Logf("%s %17s %4s %s", "序号", "实例名称", "端口号", "版本号")
+	for i := 0; i < len(instances); i++ {
+		item := instances[i]
+		t.Logf("%3s %20s %6s %s", fmt.Sprint(i+1), item.Name(), item.Port(), item.Version())
+	}
+}
+
 func TestMssql_Tables(t *testing.T) {
 	db := &mssql{
 		connection: testConnection(),

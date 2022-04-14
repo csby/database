@@ -12,7 +12,7 @@ import (
 
 type Connection struct {
 	Host     string `json:"host" note:"服务器名称或IP, 默认127.0.0.1"`
-	Port     int    `json:"port" note:"服务器端口, 默认3306"`
+	Port     int    `json:"port" note:"服务器端口, 默认1433"`
 	Instance string `json:"instance" note:"数据库实例, 默认MSSQLSERVER"`
 	Schema   string `json:"schema" note:"数据库名称"`
 	User     string `json:"user" note:"登录名"`

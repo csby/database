@@ -26,6 +26,10 @@ func (s *mysql) Open() (*sql.DB, error) {
 	return db, nil
 }
 
+func (s *mysql) Instances(host, port string) ([]sqldb.SqlInstance, error) {
+	return nil, fmt.Errorf("not support")
+}
+
 func (s *mysql) Test() (string, error) {
 	db, err := sql.Open(s.connection.DriverName(), s.connection.SourceName())
 	if err != nil {

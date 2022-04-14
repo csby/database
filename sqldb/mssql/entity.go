@@ -12,6 +12,7 @@ import (
 
 const (
 	sqlFieldTagName              = "sql"
+	sqlFieldTagIgnore            = "-"
 	sqlFieldFilterTagName        = "filter"
 	sqlFieldOrderTagName         = "order"
 	sqlFieldAutoIncrementTagName = "auto"
@@ -193,7 +194,7 @@ func (s *entity) parseFields(v reflect.Value, fields map[string]*field) {
 
 		// filed define
 		fieldName := typeField.Tag.Get(sqlFieldTagName)
-		if fieldName == "" {
+		if fieldName == "" || fieldName == sqlFieldTagIgnore {
 			continue
 		}
 
@@ -266,7 +267,7 @@ func (s *entity) parseFilterFields(v reflect.Value) {
 
 		// filed define
 		fieldName := typeField.Tag.Get(sqlFieldTagName)
-		if fieldName == "" {
+		if fieldName == "" || fieldName == sqlFieldTagIgnore {
 			continue
 		}
 

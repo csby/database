@@ -27,6 +27,38 @@ func (s *mssql) Open() (*sql.DB, error) {
 	return db, nil
 }
 
+func (s *mssql) Instances(host, port string) ([]sqldb.SqlInstance, error) {
+	instances, err := getInstances(host, port)
+	if err != nil {
+		return nil, err
+	}
+
+	results := make([]sqldb.SqlInstance, 0)
+	for name, value := range instances {
+		if len(name) < 1 {
+			continue
+		}
+
+		val, ok := value["tcp"]
+		if !ok {
+			continue
+		}
+		result := &Instance{
+			name: name,
+			port: val,
+		}
+
+		val, ok = value["Version"]
+		if ok {
+			result.version = val
+		}
+
+		results = append(results, result)
+	}
+
+	return results, nil
+}
+
 func (s *mssql) Test() (string, error) {
 	db, err := sql.Open(s.connection.DriverName(), s.connection.SourceName())
 	if err != nil {

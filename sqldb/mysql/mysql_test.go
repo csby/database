@@ -91,7 +91,12 @@ func TestMysql_ViewDefinition(t *testing.T) {
 	viewName := "ViewAlertRecord"
 	definition, err := db.ViewDefinition(viewName)
 	if err != nil {
-		t.Fatal(err)
+		if db.IsNoRows(err) {
+			t.Log(err)
+			return
+		} else {
+			t.Fatal(err)
+		}
 	}
 	t.Log("definition:", definition)
 }

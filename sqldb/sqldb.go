@@ -13,6 +13,7 @@ type SqlConnection interface {
 }
 
 type SqlDatabase interface {
+	Instances(host, port string) ([]SqlInstance, error)
 	Test() (string, error)
 	Tables() ([]*SqlTable, error)
 	Views() ([]*SqlTable, error)
@@ -36,6 +37,12 @@ type SqlDatabase interface {
 	SelectDistinct(entity interface{}, row func(idx uint64, evt SqlEvent), order interface{}, filters ...SqlFilter) error
 	SelectList(entity interface{}, row func(idx uint64, evt SqlEvent), order interface{}, filters ...SqlFilter) error
 	SelectPage(entity interface{}, page func(total, page, size, index uint64), row func(idx uint64, evt SqlEvent), size, index uint64, order interface{}, filters ...SqlFilter) error
+}
+
+type SqlInstance interface {
+	Name() string
+	Port() string
+	Version() string
 }
 
 type SqlAccess interface {
