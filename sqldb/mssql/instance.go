@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"time"
 )
 
 type Instance struct {
@@ -54,12 +55,14 @@ func parseInstances(msg []byte) map[string]map[string]string {
 }
 
 func getInstances(host, port string) (map[string]map[string]string, error) {
-
-	conn, err := net.Dial("udp", fmt.Sprintf("%s:%s", host, port))
+	dialer := &net.Dialer{KeepAlive: 10 * time.Second}
+	conn, err := dialer.Dial("udp", fmt.Sprintf("%s:%s", host, port))
 	if err != nil {
 		return nil, err
 	}
 	defer conn.Close()
+
+	conn.SetDeadline(time.Now().Add(dialer.KeepAlive))
 
 	_, err = conn.Write([]byte{3})
 	if err != nil {
