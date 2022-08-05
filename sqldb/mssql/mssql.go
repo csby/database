@@ -78,6 +78,12 @@ func (s *mssql) Test() (string, error) {
 		dbVer = dbVer[0:index]
 	}
 
+	machineName := ""
+	err = db.QueryRow("SELECT SERVERPROPERTY('MachineName')").Scan(&machineName)
+	if err == nil && len(machineName) > 0 {
+		dbVer += "[" + machineName + "]"
+	}
+
 	return dbVer, nil
 }
 
@@ -106,10 +112,12 @@ func (s *mssql) Tables() ([]*sqldb.SqlTable, error) {
 	defer db.Close()
 
 	sb := &strings.Builder{}
-	sb.WriteString("select s.[name], t.[name], e.[value] ")
+	sb.WriteString("select s.[name], t.[name], e.[value], i.[rows] ")
 	sb.WriteString("from [sys].[tables] t ")
+	sb.WriteString("inner join sysindexes as i on t.object_id = i.id ")
 	sb.WriteString("left join [sys].[schemas] s on s.[schema_id] = t.[schema_id]")
 	sb.WriteString("left join [sys].[extended_properties] e on e.[major_id] = t.[object_id] and e.[minor_id] = 0 ")
+	sb.WriteString("where (t.[type] = 'u') and (i.[indid] IN (0, 1)) ")
 
 	query := sb.String()
 	rows, err := db.Query(query)
@@ -121,9 +129,10 @@ func (s *mssql) Tables() ([]*sqldb.SqlTable, error) {
 	tables := make([]*sqldb.SqlTable, 0)
 	schema := ""
 	name := ""
+	count := int64(0)
 	var description *string = nil
 	for rows.Next() {
-		err = rows.Scan(&schema, &name, &description)
+		err = rows.Scan(&schema, &name, &description, &count)
 		if err != nil {
 			return nil, err
 		}
@@ -131,6 +140,7 @@ func (s *mssql) Tables() ([]*sqldb.SqlTable, error) {
 		table := &sqldb.SqlTable{
 			Schema: schema,
 			Name:   name,
+			Rows:   count,
 		}
 		if description != nil {
 			table.Description = *description

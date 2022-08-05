@@ -128,10 +128,15 @@ type SqlFilter interface {
 	Fields() interface{}
 }
 
+type SqlName struct {
+	Name string `json:"name"`
+}
+
 type SqlTable struct {
 	Schema      string `json:"schema"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
+	Rows        int64  `json:"rows"`
 }
 
 type SqlColumn struct {
@@ -149,4 +154,9 @@ type SqlColumn struct {
 	Scale       *int    `json:"scale" note:"小数点"`
 	DataDefault *string `json:"dataDefault" note:"数据默认值"`
 	DataDisplay string  `json:"dataDisplay" note:"数据默认值显示"`
+}
+
+type SqlTableCount struct {
+	Name string `json:"name" note:"表名称"`
+	Rows int64  `json:"rows" note:"记录行数"`
 }

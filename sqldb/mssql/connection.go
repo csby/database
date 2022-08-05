@@ -15,6 +15,7 @@ type Connection struct {
 	Port     int    `json:"port" note:"服务器端口, 默认1433"`
 	Instance string `json:"instance" note:"数据库实例, 默认MSSQLSERVER"`
 	Schema   string `json:"schema" note:"数据库名称"`
+	Intent   int    `json:"intent" note:"连接模式: 0-默认; 1-读写; 2-只读"`
 	User     string `json:"user" note:"登录名"`
 	Password string `json:"password" note:"登陆密码"`
 	Timeout  int    `json:"timeout" note:"连接超时时间，单位秒，默认10"`
@@ -32,7 +33,13 @@ func (s *Connection) SourceName() string {
 		q.Add("database", s.Schema)
 	}
 	if s.Timeout > 0 {
-		q.Add("&connection+timeout", fmt.Sprint(s.Timeout))
+		q.Add("connection+timeout", fmt.Sprint(s.Timeout))
+	}
+	switch s.Intent {
+	case 1:
+		q.Add("ApplicationIntent", "ReadWrite")
+	case 2:
+		q.Add("ApplicationIntent", "ReadOnly")
 	}
 
 	u := &url.URL{
@@ -50,7 +57,8 @@ func (s *Connection) SourceName() string {
 		u.RawQuery = q.Encode()
 	}
 
-	return u.String()
+	sn := u.String()
+	return sn
 }
 
 func (s *Connection) SchemaName() string {
@@ -109,6 +117,10 @@ func (s *Connection) CopyTo(target *Connection) int {
 	}
 	if target.Schema != s.Schema {
 		target.Schema = s.Schema
+		count++
+	}
+	if target.Intent != s.Intent {
+		target.Intent = s.Intent
 		count++
 	}
 
