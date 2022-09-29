@@ -87,6 +87,34 @@ func (s *mssql) Test() (string, error) {
 	return dbVer, nil
 }
 
+func (s *mssql) ClusterTest(readOnly bool) (string, error) {
+	db, err := sql.Open(s.connection.DriverName(), s.connection.ClusterSourceName(readOnly))
+	if err != nil {
+		return "", err
+	}
+	defer db.Close()
+
+	err = db.Ping()
+	if err != nil {
+		return "", err
+	}
+
+	dbVer := ""
+	db.QueryRow("SELECT @@VERSION").Scan(&dbVer)
+	index := strings.Index(dbVer, "\n")
+	if index > 0 {
+		dbVer = dbVer[0:index]
+	}
+
+	machineName := ""
+	err = db.QueryRow("SELECT SERVERPROPERTY('MachineName')").Scan(&machineName)
+	if err == nil && len(machineName) > 0 {
+		dbVer += "[" + machineName + "]"
+	}
+
+	return dbVer, nil
+}
+
 func (s *mssql) Version() int {
 	version, err := s.Test()
 	if err != nil {
@@ -477,6 +505,25 @@ func (s *mssql) columnDateDefault(value string) string {
 
 func (s *mssql) NewAccess(transactional bool) (sqldb.SqlAccess, error) {
 	db, err := sql.Open(s.connection.DriverName(), s.connection.SourceName())
+	if err != nil {
+		return nil, err
+	}
+
+	if transactional {
+		tx, err := db.Begin()
+		if err != nil {
+			db.Close()
+			return nil, err
+		}
+
+		return &transaction{db: db, tx: tx}, nil
+	}
+
+	return &normal{db: db}, nil
+}
+
+func (s *mssql) NewClusterAccess(transactional bool, readOnly bool) (sqldb.SqlAccess, error) {
+	db, err := sql.Open(s.connection.DriverName(), s.connection.ClusterSourceName(readOnly))
 	if err != nil {
 		return nil, err
 	}

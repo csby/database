@@ -52,6 +52,10 @@ func (s *Oracle) Test() (string, error) {
 	return dbVer, nil
 }
 
+func (s *Oracle) ClusterTest(readOnly bool) (string, error) {
+	return s.Test()
+}
+
 func (s *Oracle) Tables() ([]*sqldb.SqlTable, error) {
 	db, err := sql.Open(s.connection.DriverName(), s.connection.SourceName())
 	if err != nil {
@@ -255,6 +259,10 @@ func (s *Oracle) NewAccess(transactional bool) (sqldb.SqlAccess, error) {
 	}
 
 	return &normal{db: db}, nil
+}
+
+func (s *Oracle) NewClusterAccess(transactional bool, readOnly bool) (sqldb.SqlAccess, error) {
+	return s.NewAccess(transactional)
 }
 
 func (s *Oracle) NewEntity() sqldb.SqlEntity {

@@ -10,16 +10,19 @@ type SqlConnection interface {
 	DriverName() string
 	SourceName() string
 	SchemaName() string
+	ClusterSourceName(readOnly bool) string
 }
 
 type SqlDatabase interface {
 	Instances(host, port string) ([]SqlInstance, error)
 	Test() (string, error)
+	ClusterTest(readOnly bool) (string, error)
 	Tables() ([]*SqlTable, error)
 	Views() ([]*SqlTable, error)
 	Columns(table *SqlTable) ([]*SqlColumn, error)
 
 	NewAccess(transactional bool) (SqlAccess, error)
+	NewClusterAccess(transactional bool, readOnly bool) (SqlAccess, error)
 	NewEntity() SqlEntity
 	NewBuilder() SqlBuilder
 	NewFilter(entity interface{}, fieldOr, groupOr bool) SqlFilter

@@ -61,6 +61,39 @@ func (s *Connection) SourceName() string {
 	return sn
 }
 
+func (s *Connection) ClusterSourceName(readOnly bool) string {
+	// sqlserver://username:password@host/instance?param1=value&param2=value
+	// sqlserver://sa@localhost/SQLExpress?database=master&connection+timeout=30 // `SQLExpress instance
+	q := url.Values{}
+	if len(s.Schema) > 0 {
+		q.Add("database", s.Schema)
+	}
+	if s.Timeout > 0 {
+		q.Add("connection+timeout", fmt.Sprint(s.Timeout))
+	}
+	if readOnly {
+		q.Add("ApplicationIntent", "ReadOnly")
+	}
+
+	u := &url.URL{
+		Scheme: "sqlserver",
+		User:   url.UserPassword(s.User, s.Password),
+		Host:   fmt.Sprintf("%s:%d", s.Host, s.Port),
+	}
+
+	if len(s.Instance) > 0 {
+		if strings.ToUpper(s.Instance) != "MSSQLSERVER" {
+			u.Path = s.Instance
+		}
+	}
+	if len(q) > 0 {
+		u.RawQuery = q.Encode()
+	}
+
+	sn := u.String()
+	return sn
+}
+
 func (s *Connection) SchemaName() string {
 	return s.Schema
 }

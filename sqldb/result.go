@@ -9,6 +9,13 @@ import (
 	"time"
 )
 
+type SqlColumnKey int
+
+const (
+	SqlColKeyId SqlColumnKey = iota
+	SqlColKeyName
+)
+
 type SqlSelectResult struct {
 	Columns []*SqlSelectColumn `json:"columns"`
 	Rows    []*SqlSelectRow    `json:"rows"`
@@ -129,6 +136,10 @@ func (s *SqlSelectResult) AddScan(v interface{}) {
 }
 
 func (s *SqlSelectResult) AppendRow(columns []*SqlSelectColumn) {
+	s.AppendRowWidthKey(columns, SqlColKeyId)
+}
+
+func (s *SqlSelectResult) AppendRowWidthKey(columns []*SqlSelectColumn, key SqlColumnKey) {
 	if s.Rows == nil {
 		s.Rows = make([]*SqlSelectRow, 0)
 	}
@@ -150,7 +161,11 @@ func (s *SqlSelectResult) AppendRow(columns []*SqlSelectColumn) {
 			continue
 		}
 
-		row.kv[id] = val
+		if key == SqlColKeyName {
+			row.kv[column.Name] = val
+		} else {
+			row.kv[id] = val
+		}
 	}
 }
 

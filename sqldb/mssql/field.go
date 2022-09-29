@@ -85,3 +85,8 @@ func (s fieldCollection) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
 func (s fieldCollection) Less(i, j int) bool {
 	return s[i].index < s[j].index
 }
+
+type orderField struct {
+	Name  string
+	Value string
+}

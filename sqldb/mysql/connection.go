@@ -33,6 +33,10 @@ func (s *Connection) SourceName() string {
 		s.Timeout)
 }
 
+func (s *Connection) ClusterSourceName(readOnly bool) string {
+	return s.SourceName()
+}
+
 func (s *Connection) SchemaName() string {
 	return s.Schema
 }

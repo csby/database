@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/csby/database/sqldb"
+	"reflect"
+	"sort"
 	"strings"
 )
 
@@ -39,11 +41,11 @@ func (s *access) getFilterFields(dbFilter interface{}) []sqldb.SqlField {
 	}
 	fieldCount := filterEntity.FieldCount()
 	for fieldIndex := 0; fieldIndex < fieldCount; fieldIndex++ {
-		field := filterEntity.Field(fieldIndex)
-		if field.ValueEmpty() {
+		f := filterEntity.Field(fieldIndex)
+		if f.ValueEmpty() {
 			continue
 		}
-		fields = append(fields, field)
+		fields = append(fields, f)
 	}
 
 	return fields
@@ -58,24 +60,24 @@ func (s *access) fillWhereField(sqlBuilder sqldb.SqlBuilder, fields []sqldb.SqlF
 	if fieldCount > 0 {
 		sqlBuilder.AppendFormat("(")
 		for fieldIndex := 0; fieldIndex < fieldCount; fieldIndex++ {
-			field := fields[fieldIndex]
-			filterSymbol := field.Filter()
+			f := fields[fieldIndex]
+			filterSymbol := f.Filter()
 
 			if strings.ToLower(filterSymbol) == "in" {
 				if fieldIndex == 0 {
-					sqlBuilder.WhereFormat("%s %s %s", field.Name(), filterSymbol, field.Value())
+					sqlBuilder.WhereFormat("%s %s %s", f.Name(), filterSymbol, f.Value())
 				} else if or {
-					sqlBuilder.WhereFormatOr("%s %s %s", field.Name(), filterSymbol, field.Value())
+					sqlBuilder.WhereFormatOr("%s %s %s", f.Name(), filterSymbol, f.Value())
 				} else {
-					sqlBuilder.WhereFormatAnd("%s %s %s", field.Name(), filterSymbol, field.Value())
+					sqlBuilder.WhereFormatAnd("%s %s %s", f.Name(), filterSymbol, f.Value())
 				}
 			} else {
 				if fieldIndex == 0 {
-					sqlBuilder.Where(fmt.Sprintf("%s %s %s", field.Name(), filterSymbol, sqlBuilder.ArgName()), field.Value())
+					sqlBuilder.Where(fmt.Sprintf("%s %s %s", f.Name(), filterSymbol, sqlBuilder.ArgName()), f.Value())
 				} else if or {
-					sqlBuilder.WhereOr(fmt.Sprintf("%s %s %s", field.Name(), filterSymbol, sqlBuilder.ArgName()), field.Value())
+					sqlBuilder.WhereOr(fmt.Sprintf("%s %s %s", f.Name(), filterSymbol, sqlBuilder.ArgName()), f.Value())
 				} else {
-					sqlBuilder.WhereAnd(fmt.Sprintf("%s %s %s", field.Name(), filterSymbol, sqlBuilder.ArgName()), field.Value())
+					sqlBuilder.WhereAnd(fmt.Sprintf("%s %s %s", f.Name(), filterSymbol, sqlBuilder.ArgName()), f.Value())
 				}
 			}
 		}
@@ -90,19 +92,19 @@ func (s *access) fillWhereFilter(sqlBuilder sqldb.SqlBuilder, filters []sqldb.Sq
 	}
 
 	for filterIndex := 0; filterIndex < filterCount; filterIndex++ {
-		filter := filters[filterIndex]
-		fields := s.getFilterFields(filter.Fields())
+		f := filters[filterIndex]
+		fields := s.getFilterFields(f.Fields())
 		if len(fields) < 1 {
 			continue
 		}
 
-		if filter.GroupOr() {
+		if f.GroupOr() {
 			sqlBuilder.WhereOr("")
 		} else {
 			sqlBuilder.WhereAnd("")
 		}
 
-		s.fillWhereField(sqlBuilder, fields, filter.FieldOr())
+		s.fillWhereField(sqlBuilder, fields, f.FieldOr())
 	}
 }
 
@@ -114,6 +116,10 @@ func (s *access) fillOrder(sqlBuilder sqldb.SqlBuilder, order interface{}) {
 	if order == nil {
 		return
 	}
+	if reflect.ValueOf(order).IsNil() {
+		return
+	}
+
 	sqlEntity := &entity{}
 	err := sqlEntity.Parse(order)
 	if err != nil {
@@ -124,10 +130,64 @@ func (s *access) fillOrder(sqlBuilder sqldb.SqlBuilder, order interface{}) {
 	if count < 1 {
 		return
 	}
-	sqlBuilder.Append(fmt.Sprintf("order by %s %s", sqlEntity.fields[0].name, sqlEntity.fields[0].order))
+	sort.Sort(sqlEntity.fields)
+
+	orders := make(sqldb.OrderCollection, 0)
+	fields := make([]orderField, 0)
+	for i := 0; i < count; i++ {
+		f := sqlEntity.fields[i]
+		o := strings.ToUpper(f.order)
+		if o == sqlFieldOrderValueCustom {
+			if f.value == nil {
+				continue
+			}
+			v, ok := f.value.(int)
+			if ok {
+				if v > 0 {
+					fields = append(fields, orderField{Name: f.name, Value: sqlFieldOrderValueAsc})
+				} else if v < 0 {
+					fields = append(fields, orderField{Name: f.name, Value: sqlFieldOrderValueDesc})
+				}
+			} else {
+				ov, ok := f.value.(sqldb.Order)
+				if ok {
+					ov.Name = f.name
+					orders = append(orders, ov)
+				}
+			}
+		} else {
+			ov, ok := f.value.(sqldb.Order)
+			if ok {
+				ov.Name = f.name
+				orders = append(orders, ov)
+			} else {
+				fields = append(fields, orderField{Name: f.name, Value: o})
+			}
+		}
+	}
+
+	count = len(orders)
+	if count > 0 {
+		sort.Sort(orders)
+		for i := 0; i < count; i++ {
+			o := orders[i]
+			if o.Sort > 0 {
+				fields = append(fields, orderField{Name: o.Name, Value: sqlFieldOrderValueAsc})
+			} else if o.Sort < 0 {
+				fields = append(fields, orderField{Name: o.Name, Value: sqlFieldOrderValueDesc})
+			}
+		}
+	}
+
+	count = len(fields)
+	if count < 1 {
+		return
+	}
+
+	sqlBuilder.Append(fmt.Sprintf("order by %s %s", fields[0].Name, fields[0].Value))
 
 	for i := 1; i < count; i++ {
-		sqlBuilder.Append(fmt.Sprintf(", %s %s", sqlEntity.fields[i].name, sqlEntity.fields[i].order))
+		sqlBuilder.Append(fmt.Sprintf(", %s %s", fields[i].Name, fields[i].Value))
 	}
 }
 
@@ -158,23 +218,26 @@ func (s *access) insert(sqlAccess sqldb.SqlAccess, selective bool, dbEntity inte
 		sqlBuilder.Value(field.Name(), field.Value())
 	}
 
-	stmt, err := sqlAccess.Prepare(sqlBuilder.Query())
-	if err != nil {
-		return 0, err
-	}
-	defer stmt.Close()
-
-	_, err = stmt.Exec(sqlBuilder.Args()...)
-	if err != nil {
-		return 0, err
-	}
-
 	if hasAutoField {
-		//id, err := result.LastInsertId()
-		//if err != nil {
-		//	return 0, err
-		//}
-		//return uint64(id), nil
+		query := fmt.Sprintf("%s; SELECT SCOPE_IDENTITY()", sqlBuilder.Query())
+		lastInsertId := uint64(0)
+		err = sqlAccess.QueryRow(query, sqlBuilder.Args()...).Scan(&lastInsertId)
+		if err != nil {
+			return 0, err
+		} else {
+			return lastInsertId, nil
+		}
+	} else {
+		stmt, err := sqlAccess.Prepare(sqlBuilder.Query())
+		if err != nil {
+			return 0, err
+		}
+		defer stmt.Close()
+
+		_, err = stmt.Exec(sqlBuilder.Args()...)
+		if err != nil {
+			return 0, err
+		}
 	}
 
 	return 0, nil
@@ -433,7 +496,8 @@ func (s *access) selectPage(sqlAccess sqldb.SqlAccess, dbEntity interface{}, pag
 	pageIndex := index
 	if pageIndex > pageCount {
 		pageIndex = pageCount
-	} else if pageIndex < 1 {
+	}
+	if pageIndex < 1 {
 		pageIndex = 1
 	}
 	if page != nil {
@@ -488,7 +552,6 @@ func (s *access) selectPage(sqlAccess sqldb.SqlAccess, dbEntity interface{}, pag
 	}
 
 	query := sqlBuilder.Query()
-	fmt.Println("query:", query)
 	args := sqlBuilder.Args()
 	rows, err := sqlAccess.Query(query, args...)
 	if err != nil {

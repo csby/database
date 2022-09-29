@@ -48,6 +48,10 @@ func (s *mysql) Test() (string, error) {
 	return dbVer, nil
 }
 
+func (s *mysql) ClusterTest(readOnly bool) (string, error) {
+	return s.Test()
+}
+
 func (s *mysql) Tables() ([]*sqldb.SqlTable, error) {
 	db, err := sql.Open(s.connection.DriverName(), s.connection.SourceName())
 	if err != nil {
@@ -319,6 +323,10 @@ func (s *mysql) NewAccess(transactional bool) (sqldb.SqlAccess, error) {
 	}
 
 	return &normal{db: db}, nil
+}
+
+func (s *mysql) NewClusterAccess(transactional bool, readOnly bool) (sqldb.SqlAccess, error) {
+	return s.NewAccess(transactional)
 }
 
 func (s *mysql) NewEntity() sqldb.SqlEntity {
