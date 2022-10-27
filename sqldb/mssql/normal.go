@@ -59,8 +59,8 @@ func (s *normal) IsNoRows(err error) bool {
 	return s.isNoRows(err)
 }
 
-func (s *normal) Insert(entity interface{}) (uint64, error) {
-	return s.insert(s, false, entity)
+func (s *normal) Insert(entity interface{}, fields ...sqldb.SqlField) (uint64, error) {
+	return s.insert(s, false, entity, fields...)
 }
 
 func (s *normal) InsertSelective(entity interface{}) (uint64, error) {

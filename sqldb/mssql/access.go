@@ -71,6 +71,14 @@ func (s *access) fillWhereField(sqlBuilder sqldb.SqlBuilder, fields []sqldb.SqlF
 				} else {
 					sqlBuilder.WhereFormatAnd("%s %s %s", f.Name(), filterSymbol, f.Value())
 				}
+			} else if strings.ToLower(filterSymbol) == "custom" {
+				if fieldIndex == 0 {
+					sqlBuilder.Where(fmt.Sprintf("%s %s", f.Name(), f.Value()))
+				} else if or {
+					sqlBuilder.WhereOr(fmt.Sprintf("%s %s", f.Name(), f.Value()))
+				} else {
+					sqlBuilder.WhereAnd(fmt.Sprintf("%s %s", f.Name(), f.Value()))
+				}
 			} else {
 				if fieldIndex == 0 {
 					sqlBuilder.Where(fmt.Sprintf("%s %s %s", f.Name(), filterSymbol, sqlBuilder.ArgName()), f.Value())
@@ -191,7 +199,7 @@ func (s *access) fillOrder(sqlBuilder sqldb.SqlBuilder, order interface{}) {
 	}
 }
 
-func (s *access) insert(sqlAccess sqldb.SqlAccess, selective bool, dbEntity interface{}) (uint64, error) {
+func (s *access) insert(sqlAccess sqldb.SqlAccess, selective bool, dbEntity interface{}, fields ...sqldb.SqlField) (uint64, error) {
 	sqlEntity := &entity{}
 	err := sqlEntity.Parse(dbEntity)
 	if err != nil {
@@ -216,6 +224,20 @@ func (s *access) insert(sqlAccess sqldb.SqlAccess, selective bool, dbEntity inte
 		}
 
 		sqlBuilder.Value(field.Name(), field.Value())
+	}
+	ec := len(fields)
+	for ei := 0; ei < ec; ei++ {
+		ef := fields[ei]
+		if ef == nil {
+			continue
+		}
+		if selective {
+			if ef.ValueEmpty() {
+				continue
+			}
+		}
+
+		sqlBuilder.Value(ef.Name(), ef.Value())
 	}
 
 	if hasAutoField {
@@ -355,7 +377,7 @@ func (s *access) updateByPrimaryKey(sqlAccess sqldb.SqlAccess, selective bool, d
 	}
 	for fieldIndex := 0; fieldIndex < primaryCount; fieldIndex++ {
 		field := primaryFields[fieldIndex]
-		sqlBuilder.Where(fmt.Sprintf(" %s=?", field.Name()), field.Value())
+		sqlBuilder.Where(fmt.Sprintf(" %s = %s", field.Name(), sqlBuilder.ArgName()), field.Value())
 	}
 
 	query := sqlBuilder.Query()
@@ -381,7 +403,7 @@ func (s *access) updateByPrimaryKey(sqlAccess sqldb.SqlAccess, selective bool, d
 		sqlBuilder.Select("COUNT(*)", false).From(sqlEntity.Name())
 		for fieldIndex := 0; fieldIndex < primaryCount; fieldIndex++ {
 			field := primaryFields[fieldIndex]
-			sqlBuilder.Where(fmt.Sprintf(" %s=?", field.Name()), field.Value())
+			sqlBuilder.Where(fmt.Sprintf(" %s = %s", field.Name(), sqlBuilder.ArgName()), field.Value())
 		}
 
 		query := sqlBuilder.Query()

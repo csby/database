@@ -486,7 +486,9 @@ func (s *mssql) columnTypeName(dataType string, length int, precision, scale *in
 		}
 	} else {
 		if strings.ToLower(dataType) == "decimal" || strings.ToLower(dataType) == "numeric" {
-			sb.WriteString(fmt.Sprintf("(%d, %d)", precision, *scale))
+			if precision != nil && scale != nil {
+				sb.WriteString(fmt.Sprintf("(%d, %d)", *precision, *scale))
+			}
 		}
 	}
 

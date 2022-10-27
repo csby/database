@@ -43,7 +43,7 @@ func (s *normal) IsNoRows(err error) bool {
 	return s.isNoRows(err)
 }
 
-func (s *normal) Insert(entity interface{}) (uint64, error) {
+func (s *normal) Insert(entity interface{}, fields ...sqldb.SqlField) (uint64, error) {
 	return s.insert(s, false, entity)
 }
 

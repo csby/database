@@ -75,7 +75,7 @@ func (s *transaction) IsNoRows(err error) bool {
 	return s.isNoRows(err)
 }
 
-func (s *transaction) Insert(entity interface{}) (uint64, error) {
+func (s *transaction) Insert(entity interface{}, fields ...sqldb.SqlField) (uint64, error) {
 	return s.insert(s, false, entity)
 }
 

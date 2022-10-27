@@ -61,7 +61,7 @@ type SqlAccess interface {
 	QueryRow(query string, args ...interface{}) *sql.Row
 
 	IsNoRows(err error) bool
-	Insert(entity interface{}) (uint64, error)
+	Insert(entity interface{}, fields ...SqlField) (uint64, error)
 	InsertSelective(entity interface{}) (uint64, error)
 	Delete(entity interface{}, filters ...SqlFilter) (uint64, error)
 	Update(entity interface{}, filters ...SqlFilter) (uint64, error)
