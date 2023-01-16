@@ -132,6 +132,10 @@ func (s *mssql) Version() int {
 	return 0
 }
 
+func (s *mssql) Schema() string {
+	return s.connection.SchemaName()
+}
+
 func (s *mssql) Tables() ([]*sqldb.SqlTable, error) {
 	db, err := sql.Open(s.connection.DriverName(), s.connection.SourceName())
 	if err != nil {
@@ -226,9 +230,10 @@ func (s *mssql) Columns(table *sqldb.SqlTable) ([]*sqldb.SqlColumn, error) {
 	}
 	defer db.Close()
 
-	// 列名 | 列说明 | 数据类型 | 长度 | 精度 | 小数位数 | 标识 | 主键 | 允许空 | 默认值
+	// ID | 列名 | 列说明 | 数据类型 | 长度 | 精度 | 小数位数 | 标识 | 主键 | 允许空 | 默认值
 	sqlStr := `
 SELECT  
+        col.[colid] AS ID , 
         col.[name] AS 列名 ,  
         ISNULL(ep.[value], '') AS 列说明 ,  
         t.[name] AS 数据类型 ,  
@@ -286,6 +291,7 @@ WHERE   obj.[name] =
 	defer rows.Close()
 
 	columns := make([]*sqldb.SqlColumn, 0)
+	id := 0
 	name := ""
 	var comment *string = nil
 	dataType := ""
@@ -297,12 +303,13 @@ WHERE   obj.[name] =
 		var precision *int = nil
 		var scale *int = nil
 		var dataDefault *string = nil
-		err = rows.Scan(&name, &comment, &dataType, &length, &precision, &scale, &autoIncrement, &primaryKey, &nullable, &dataDefault)
+		err = rows.Scan(&id, &name, &comment, &dataType, &length, &precision, &scale, &autoIncrement, &primaryKey, &nullable, &dataDefault)
 		if err != nil {
 			return nil, err
 		}
 
 		column := &sqldb.SqlColumn{
+			Id:          id,
 			Name:        name,
 			DataType:    dataType,
 			DataDefault: dataDefault,
@@ -482,7 +489,11 @@ func (s *mssql) columnTypeName(dataType string, length int, precision, scale *in
 	sb.WriteString(dataType)
 	if scale == nil && precision != nil {
 		if *precision == 0 {
-			sb.WriteString(fmt.Sprintf("(%d)", length))
+			if length == -1 {
+				sb.WriteString(fmt.Sprintf("(%s)", "max"))
+			} else {
+				sb.WriteString(fmt.Sprintf("(%d)", length))
+			}
 		}
 	} else {
 		if strings.ToLower(dataType) == "decimal" || strings.ToLower(dataType) == "numeric" {

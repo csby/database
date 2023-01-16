@@ -423,9 +423,28 @@ func (s *access) selectCount(sqlAccess sqldb.SqlAccess, tableName string, sqlFil
 	sqlBuilder.Select("COUNT(*)", false).From(tableName)
 	s.fillWhere(sqlBuilder, sqlFilters...)
 
+	if !sqlBuilder.hasWhere {
+		c, e := s.getTableRowsCount(sqlAccess, tableName)
+		if e == nil {
+			return c, nil
+		}
+	}
+
 	count := uint64(0)
 	query := sqlBuilder.Query()
 	row := sqlAccess.QueryRow(query, sqlBuilder.Args()...)
+	err := row.Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
+func (s *access) getTableRowsCount(sqlAccess sqldb.SqlAccess, tableName string) (uint64, error) {
+	query := fmt.Sprintf("select [rows] from [sysindexes] where [id] = object_id('%s') and [indid] < 2 and [indid] > -1", tableName)
+	count := uint64(0)
+	row := sqlAccess.QueryRow(query)
 	err := row.Scan(&count)
 	if err != nil {
 		return 0, err
@@ -533,21 +552,21 @@ func (s *access) selectPage(sqlAccess sqldb.SqlAccess, dbEntity interface{}, pag
 	sqlBuilderOrder.Reset()
 	s.fillOrder(sqlBuilderOrder, dbOrder)
 	if len(sqlBuilderOrder.Query()) < 1 {
-		orderField := ""
+		orderFieldName := ""
 		fieldCount := sqlEntity.FieldCount()
 		for i := 0; i < fieldCount; i++ {
-			field := sqlEntity.Field(i)
-			if orderField == "" {
-				orderField = field.Name()
+			f := sqlEntity.Field(i)
+			if orderFieldName == "" {
+				orderFieldName = f.Name()
 			}
-			if field.PrimaryKey() {
-				orderField = field.Name()
+			if f.PrimaryKey() {
+				orderFieldName = f.Name()
 				break
 			}
 		}
-		if orderField != "" {
+		if orderFieldName != "" {
 			sqlBuilderOrder.Append("order by ")
-			sqlBuilderOrder.Append(orderField)
+			sqlBuilderOrder.Append(orderFieldName)
 		}
 	}
 	orderQuery := sqlBuilderOrder.Query()

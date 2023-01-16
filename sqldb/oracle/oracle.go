@@ -56,6 +56,10 @@ func (s *Oracle) ClusterTest(readOnly bool) (string, error) {
 	return s.Test()
 }
 
+func (s *Oracle) Schema() string {
+	return s.connection.SchemaName()
+}
+
 func (s *Oracle) Tables() ([]*sqldb.SqlTable, error) {
 	db, err := sql.Open(s.connection.DriverName(), s.connection.SourceName())
 	if err != nil {

@@ -17,6 +17,7 @@ type SqlDatabase interface {
 	Instances(host, port string) ([]SqlInstance, error)
 	Test() (string, error)
 	ClusterTest(readOnly bool) (string, error)
+	Schema() string
 	Tables() ([]*SqlTable, error)
 	Views() ([]*SqlTable, error)
 	Columns(table *SqlTable) ([]*SqlColumn, error)
@@ -143,6 +144,7 @@ type SqlTable struct {
 }
 
 type SqlColumn struct {
+	Id      int    `json:"id" note:"ID"`
 	Name    string `json:"name" note:"名称"`
 	Type    string `json:"type" note:"类型"`
 	Comment string `json:"comment" note:"说明"`
@@ -157,6 +159,16 @@ type SqlColumn struct {
 	Scale       *int    `json:"scale" note:"小数点"`
 	DataDefault *string `json:"dataDefault" note:"数据默认值"`
 	DataDisplay string  `json:"dataDisplay" note:"数据默认值显示"`
+}
+
+type SqlIndex struct {
+	Id         int          `json:"id" note:"ID"`
+	Name       string       `json:"name" note:"名称"`
+	Type       int          `json:"type" note:"类型: 1-聚集; 2-非聚集"`
+	PrimaryKey bool         `json:"primaryKey" note:"是否主键"`
+	UniqueKey  bool         `json:"uniqueKey" note:"是否唯一"`
+	Fragment   float32      `json:"fragment" note:"碎片总计"`
+	Columns    []*SqlColumn `json:"columns" note:"包含列"`
 }
 
 type SqlTableCount struct {

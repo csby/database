@@ -52,6 +52,10 @@ func (s *mysql) ClusterTest(readOnly bool) (string, error) {
 	return s.Test()
 }
 
+func (s *mysql) Schema() string {
+	return s.connection.SchemaName()
+}
+
 func (s *mysql) Tables() ([]*sqldb.SqlTable, error) {
 	db, err := sql.Open(s.connection.DriverName(), s.connection.SourceName())
 	if err != nil {
